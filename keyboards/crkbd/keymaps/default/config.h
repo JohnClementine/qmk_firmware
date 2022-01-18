@@ -20,27 +20,48 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-//#define USE_MATRIX_I2C
+#define USE_MATRIX_I2C
 
 /* Select hand configuration */
 
-#define MASTER_LEFT
+#define MASTER_LEFT 
 // #define MASTER_RIGHT
 // #define EE_HANDS
 
 #define USE_SERIAL_PD2
 
 #define TAPPING_FORCE_HOLD
-#define TAPPING_TERM 100
+#define TAPPING_TERM 150
 
 #ifdef RGBLIGHT_ENABLE
     #undef RGBLED_NUM
     #define RGBLIGHT_ANIMATIONS
-    #define RGBLED_NUM 27
+    #define RGBLED_NUM 27   
     #define RGBLIGHT_LIMIT_VAL 120
     #define RGBLIGHT_HUE_STEP 10
     #define RGBLIGHT_SAT_STEP 17
     #define RGBLIGHT_VAL_STEP 17
 #endif
 
+//#define OLED_FONT_H "keyboards/crkbd/lib/glcdfont.c"
+
+#define IGNORE_MOD_TAP_INTERRUPT
+#define AUTO_SHIFT_TIMEOUT 180
+
+
+//size saving from here down https://docs.qmk.fm/#/squeezing_avr
+#define NO_ACTION_MACRO
+#define NO_ACTION_FUNCTION
+#ifndef NO_DEBUG
+#define NO_DEBUG
+#endif // !NO_DEBUG
+#if !defined(NO_PRINT) && !defined(CONSOLE_ENABLE)
+#define NO_PRINT
+#endif // !NO_PRINT
+
+#undef LOCKING_SUPPORT_ENABLE
+#undef LOCKING_RESYNC_ENABLE
+#define NO_ACTION_ONESHOT
+#define NO_MUSIC_MODE
+#define LAYER_STATE_8BIT
 #define OLED_FONT_H "keyboards/crkbd/lib/glcdfont.c"

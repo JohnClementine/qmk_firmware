@@ -1,2 +1,6 @@
 OLED_ENABLE = yes
+SRC += oled-bongocat.c
+OPT_DEFS += -DLEFTCA
 OLED_DRIVER = SSD1306
+OLED_DRIVER_ENABLE = yes
+WPM_ENABLE = yes
