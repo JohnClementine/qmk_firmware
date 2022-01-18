@@ -37,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define RGB_MATRIX_SPLIT \
         { 27, 27 }
 #    define SPLIT_TRANSPORT_MIRROR
+#    define RGB_MATRIX_KEYPRESSES
 #endif
 
 #define DIODE_DIRECTION COL2ROW

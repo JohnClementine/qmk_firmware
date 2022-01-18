@@ -129,6 +129,40 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 
+
+
+
+void rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {         //https://beta.docs.qmk.fm/using-qmk/hardware-features/lighting/feature_rgb_matrix#callbacks-id-callbacks
+    for (uint8_t i = led_min; i <= led_max; i++) {
+        switch(get_highest_layer(layer_state|default_layer_state)) {
+            case 1:
+                rgb_matrix_set_color(9, RGB_GREEN);//Save
+                rgb_matrix_set_color(11, RGB_WHITE);//gui
+                rgb_matrix_set_color(0, RGB_CYAN);//screenshot button
+                break;
+            case 2:
+                rgb_matrix_set_color(34, RGB_WHITE);//up
+                rgb_matrix_set_color(35, RGB_GREEN);//home
+                rgb_matrix_set_color(33, RGB_GREEN);//end
+                rgb_matrix_set_color(24, RGB_WHITE);//left
+                rgb_matrix_set_color(25, RGB_WHITE);//down
+                rgb_matrix_set_color(26, RGB_WHITE);//right
+                break;
+            case 3:
+                rgb_matrix_set_color(51, RGB_WHITE);//volup
+                rgb_matrix_set_color(50, RGB_WHITE);//voldown
+                rgb_matrix_set_color(22, RGB_RED); //reset button
+                rgb_matrix_set_color(6, RGB_WHITE);//alt
+                rgb_matrix_set_color(7, RGB_WHITE);//tab
+                rgb_matrix_set_color(17, RGB_ORANGE);//ctrl alt
+                rgb_matrix_set_color(16, RGB_ORANGE);//del
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 /*void rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {         //https://beta.docs.qmk.fm/using-qmk/hardware-features/lighting/feature_rgb_matrix#callbacks-id-callbacks
     for (uint8_t i = led_min; i <= led_max; i++) {
         switch(get_highest_layer(layer_state|default_layer_state)) {
@@ -146,7 +180,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                 break;
             case 2:
                 rgb_matrix_set_color(12, RGB_WHITE);//up
-               // rgb_matrix_set_color(35, RGB_GREEN);//home
+                rgb_matrix_set_color(35, RGB_GREEN);//home
                // rgb_matrix_set_color(33, RGB_GREEN);//end
                // rgb_matrix_set_color(24, RGB_WHITE);//left
                // rgb_matrix_set_color(25, RGB_WHITE);//down

@@ -1,0 +1,5 @@
+https://github.com/qmk/qmk_firmware/blob/master/users/drashna/keyrecords/secrets.md
+
+https://docs.qmk.fm/#/newbs_git_using_your_master_branch
+
+https://docs.qmk.fm/#/newbs_git_best_practices?id=best-git-practices-for-working-with-qmk
