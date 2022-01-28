@@ -18,62 +18,89 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include QMK_KEYBOARD_H
 #include "secrets.h"
-//#ifdef OLED_DRIVER_ENABLE
-//#include <stdio.h>
-//char wpm_str[4]; //bongo
-//#include "oled.c"
-//#endif
-/*typedef enum {
-    TD_NONE,
-    TD_UNKNOWN,
-    TD_SINGLE_TAP,
-    TD_SINGLE_HOLD,
-    TD_DOUBLE_TAP,
-    TD_DOUBLE_HOLD,
-    TD_DOUBLE_SINGLE_TAP, // Send two single taps
-    TD_TRIPLE_TAP,
-    TD_TRIPLE_HOLD
-} td_state_t;*/
-
-//typedef struct {
-//    bool is_press_action;
-//    td_state_t state;
-//} td_tap_t;
-
-// Tap dance enums
-//enum {
-//    CT_DOTSPACE //mine
-//};
-
-//td_state_t cur_dance(qk_tap_dance_state_t *state);
-
-// For the x tap dance. Put it here so it can be used in any keymap
-//void x_finished(qk_tap_dance_state_t *state, void *user_data);
-//void x_reset(qk_tap_dance_state_t *state, void *user_data);
+#include <stdio.h>
+//extern rgblight_config_t rgblight_config;
+#define NUM_LEDS_PER_SIDE 27
+#define NUM_LEDS_PER_SIDE_ON_NORMAL_CORNE 27
 
 enum custom_keycodes {
     PASSWORD = SAFE_RANGE,
+    CTRL
 };
+void set_color_split(uint8_t key_code, uint8_t r, uint8_t g, uint8_t b) {
+    // When using defines for MASTER_LEFT and MASTER_RIGHT, is_keyboard_left()
+    // will be inaccurate. For example, (is_keyboard_left() &&
+    // !is_keyboard_master()) can NEVER be true.
+#ifdef MASTER_LEFT
+    bool is_left = true;
+#endif
+#ifdef MASTER_RIGHT
+    bool is_left = false;
+#endif
 
- bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  //   if (record->event.pressed) {
-        //oled_timer = timer_read();
-    //    extern uint32_t tap_timer;
-      //  tap_timer = timer_read32();
-    //}
+    bool left_is_master = (is_keyboard_master() && is_left) || (!is_keyboard_master() && !is_left);
+
+    // Note on constants: 23 is the number of LEDs on each side (24) minus 1.
+    // 27 is the number of LEDs that the Corne normally has with six columns.
+
+    // Rule #1: you must set the LED based on what the master's range is. So if
+    // the USB cable is in the left half, then the range is 0-23, otherwise it's
+    // 27-50.
+
+    // Rule #2: each half of the keyboard can only set its own LEDs, it's just
+    // that the codes change according to Rule #1.
+
+    // Rule #2
+    if ((is_left && key_code >= NUM_LEDS_PER_SIDE) || (!is_left && key_code < NUM_LEDS_PER_SIDE)) {
+        return;
+    }
+
+    // Rule #1
+    if (left_is_master && key_code >= NUM_LEDS_PER_SIDE)
+        key_code -= NUM_LEDS_PER_SIDE_ON_NORMAL_CORNE;
+    else if (!left_is_master && key_code < NUM_LEDS_PER_SIDE)
+        key_code += NUM_LEDS_PER_SIDE_ON_NORMAL_CORNE;
+    rgb_matrix_set_color(key_code, r, g, b);
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) { //https://docs.qmk.fm/#/custom_quantum_functions?id=programming-the-behavior-of-any-keycode
     switch (keycode) {
     case PASSWORD:
         if (record->event.pressed) {
-            // when keycode PASSWORD is pressed
+        // Do something when pressed
             send_string_with_delay(secrets[keycode - PASSWORD], 1);
-            //SEND_STRING(secret);
-        } 
-        else {
-            // when keycode PASSWORD is released
         }
-        break;
-    }
+        else {
+        // Do something else when release
+        }
+        return false; // Skip all further processing of this key
+     //   break;
+   /* case CTRL: // Could not get this to work, was trying to change RGBs when ctrl was held down, flashes white for a millisecond when held down even though it keeps the registered code
+//        static rgblight_config_t rgb_config_TEMP;
+        if (record->event.pressed) {
+            register_code(KC_LCTL);
+            //rgb_config_TEMP = rgblight_config;
+            //rgb_matrix_set_color_all(RGB_BLACK);
+            rgb_matrix_set_color(5, RGB_WHITE);
+            rgb_matrix_set_color(4, RGB_WHITE);
+            rgb_matrix_set_color(10, RGB_WHITE);
+            rgb_matrix_set_color(22, RGB_WHITE);
+            rgb_matrix_set_color(20, RGB_WHITE);
+            rgb_matrix_set_color(3, RGB_WHITE);
+            //set_color_split(5, RGB_WHITE);
+            //set_color_split(4, RGB_WHITE);
+            //set_color_split(3, RGB_WHITE);
+            //set_color_split(2, RGB_WHITE);
+            //set_color_split(1, RGB_WHITE);
+        } else {                                // When button is released
+            unregister_code(KC_LCTL);
+          //  rgblight_config = rgb_config_TEMP;
+        } */
+      //  break;
     return true;
+    default:
+      return true; // Process all other keycodes normally
+    }
 };
 
 
@@ -129,91 +156,90 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 
+// This is a thin wrapper around rgb_matrix_set_color which allows you to put
+// the same firmware on both halves of the keyboard (other than a #define for
+// `MASTER_LEFT` or `MASTER_RIGHT`) and still have the correct LEDs light up
+// regardless of which half has the USB cable in it.
+//
+// This complexity behind this logic is explained in the comments within the
+// function itself.
+//STOLE FROM HERE
 
-
+    // Diagram of underglow LEDs on the both sides when viewed from above:
+    //
+    //
+    // (LED 0 is underneath the "R" key on a QWERTY keyboard)
+    // (LED 29 is underneath the "P" key on a QWERTY keyboard)
+    //
+    //          2   1   0            27  28  29
+    //          3   4   5            32  31  30
+    //
+    // Diagram of per-key LEDs on the both sides when viewed from above:
+    // 24 23  18  17  10  9         36  37  44  45  50  51
+    // 25 22  19  16  11  8         35  38  43  46  49  52
+    // 26 21  20  15  12  7         34  39  42  47  48  53
+    //            14  13  6         33  40  41
 
 void rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {         //https://beta.docs.qmk.fm/using-qmk/hardware-features/lighting/feature_rgb_matrix#callbacks-id-callbacks
+
+        uint8_t mod_state = get_mods();
+        if(mod_state & MOD_MASK_CTRL) {
+                set_color_split(19, RGB_GREEN); //SAVE
+                set_color_split(15, RGB_WHITE); //COPY
+                set_color_split(12, RGB_RED); //PASTE
+                set_color_split(20, RGB_ORANGE); //CUT
+                set_color_split(21, RGB_RED); //UNDO
+        }
+
     for (uint8_t i = led_min; i <= led_max; i++) {
         switch(get_highest_layer(layer_state|default_layer_state)) {
             case 1:
-                rgb_matrix_set_color(9, RGB_GREEN);//Save
-                rgb_matrix_set_color(11, RGB_WHITE);//gui
-                rgb_matrix_set_color(0, RGB_CYAN);//screenshot button
+                set_color_split(0, RGB_WHITE);
+                set_color_split(1, RGB_WHITE);
+                set_color_split(2, RGB_WHITE);
+                set_color_split(3, RGB_WHITE);
+                set_color_split(4, RGB_WHITE);
+                set_color_split(5, RGB_WHITE);
+                set_color_split(24, RGB_RED);//screenshot button
+                set_color_split(25, RGB_ORANGE);//gui
                 break;
             case 2:
-                rgb_matrix_set_color(34, RGB_WHITE);//up
-                rgb_matrix_set_color(35, RGB_GREEN);//home
-                rgb_matrix_set_color(33, RGB_GREEN);//end
-                rgb_matrix_set_color(24, RGB_WHITE);//left
-                rgb_matrix_set_color(25, RGB_WHITE);//down
-                rgb_matrix_set_color(26, RGB_WHITE);//right
+                set_color_split(27, RGB_WHITE);
+                set_color_split(28, RGB_WHITE);
+                set_color_split(29, RGB_WHITE);
+                set_color_split(30, RGB_WHITE);
+                set_color_split(31, RGB_WHITE);
+                set_color_split(32, RGB_WHITE);
+                set_color_split(38, RGB_WHITE);//up
+                set_color_split(35, RGB_GREEN);//home
+                set_color_split(43, RGB_GREEN);//end
+                set_color_split(34, RGB_WHITE);//left
+                set_color_split(39, RGB_WHITE);//down
+                set_color_split(42, RGB_WHITE);//right
                 break;
             case 3:
-                rgb_matrix_set_color(51, RGB_WHITE);//volup
-                rgb_matrix_set_color(50, RGB_WHITE);//voldown
-                rgb_matrix_set_color(22, RGB_RED); //reset button
-                rgb_matrix_set_color(6, RGB_WHITE);//alt
-                rgb_matrix_set_color(7, RGB_WHITE);//tab
-                rgb_matrix_set_color(17, RGB_ORANGE);//ctrl alt
-                rgb_matrix_set_color(16, RGB_ORANGE);//del
+                set_color_split(0, RGB_WHITE);
+                set_color_split(1, RGB_WHITE);
+                set_color_split(2, RGB_WHITE);
+                set_color_split(3, RGB_WHITE);
+                set_color_split(4, RGB_WHITE);
+                set_color_split(5, RGB_WHITE);
+                set_color_split(27, RGB_WHITE);
+                set_color_split(28, RGB_WHITE);
+                set_color_split(29, RGB_WHITE);
+                set_color_split(30, RGB_WHITE);
+                set_color_split(31, RGB_WHITE);
+                set_color_split(32, RGB_WHITE);
+                set_color_split(35, RGB_WHITE);//volup
+                set_color_split(38, RGB_WHITE);//voldown
+                set_color_split(40, RGB_RED); //reset button
+                set_color_split(11, RGB_WHITE);//alt
+                set_color_split(8, RGB_WHITE);//tab
+                set_color_split(12, RGB_ORANGE);//ctrl alt
+                set_color_split(7, RGB_ORANGE);//del
                 break;
             default:
                 break;
         }
     }
 }
-
-/*void rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {         //https://beta.docs.qmk.fm/using-qmk/hardware-features/lighting/feature_rgb_matrix#callbacks-id-callbacks
-    for (uint8_t i = led_min; i <= led_max; i++) {
-        switch(get_highest_layer(layer_state|default_layer_state)) {
-            case 1:
-                rgb_matrix_set_color(1, RGB_GREEN);//Save
- //               rgb_matrix_set_color(11, RGB_WHITE);//gui
-                rgb_matrix_set_color(33, RGB_CYAN);//screenshot button
-
-                
-                rgb_matrix_set_color(9, RGB_RED);
-                rgb_matrix_set_color(10, RGB_GREEN);
-                rgb_matrix_set_color(17, RGB_BLUE);
-                rgb_matrix_set_color(18, RGB_RED);
-                rgb_matrix_set_color(23, RGB_WHITE);
-                break;
-            case 2:
-                rgb_matrix_set_color(12, RGB_WHITE);//up
-                rgb_matrix_set_color(35, RGB_GREEN);//home
-               // rgb_matrix_set_color(33, RGB_GREEN);//end
-               // rgb_matrix_set_color(24, RGB_WHITE);//left
-               // rgb_matrix_set_color(25, RGB_WHITE);//down
-             //   rgb_matrix_set_color(26, RGB_WHITE);//right
-                break;
-            case 3:
-                rgb_matrix_set_color(34, RGB_WHITE);//volup
-                rgb_matrix_set_color(35, RGB_WHITE);//voldown
-                rgb_matrix_set_color(22, RGB_RED); //reset button
-                rgb_matrix_set_color(6, RGB_WHITE);//alt
-                rgb_matrix_set_color(7, RGB_WHITE);//tab
-                rgb_matrix_set_color(17, RGB_ORANGE);//ctrl alt
-                rgb_matrix_set_color(16, RGB_ORANGE);//del
-                break; 
-            default:
-                break;
-        }
-    }
-}*/
-
-
-/*void x_reset(qk_tap_dance_state_t *state, void *user_data) {
-    switch (xtap_state.state) {
-        case TD_SINGLE_TAP: unregister_code(KC_SPC); break;
-        case TD_SINGLE_HOLD: unregister_code(KC_LSFT); break;
-        case TD_DOUBLE_TAP: unregister_code (KC_DOT); unregister_code (KC_SPC); break;
-        case TD_DOUBLE_HOLD: unregister_code(KC_LCTL);
-        case TD_DOUBLE_SINGLE_TAP: unregister_code(KC_SPC);
-        default: break;
-    }
-    xtap_state.state = TD_NONE;
-}
-
-qk_tap_dance_action_t tap_dance_actions[] = {
-    [CT_DOTSPACE] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, x_finished, x_reset)
-}*/;
